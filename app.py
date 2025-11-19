@@ -500,12 +500,12 @@ def _load_model_for_subprocess():
             
             print(f"[{os.getpid()}] 🔧 MLX_USE_CPU: {os.environ.get('MLX_USE_CPU', 'Not set')}")
             
-            # Try different model paths (优先 8bit，备用 4bit，最后尝试无后缀版本)
-            # 根据用户反馈，之前成功使用的是无后缀版本
+            # Try different model paths (根据 Hugging Face 实际存在的模型)
+            # 已验证：mlx-community 下存在 8bit、5bit、4bit 版本，不存在无后缀版本
             model_paths = [
-                "mlx-community/DeepSeek-OCR-8bit",  # 主要：8bit 版本
-                "mlx-community/DeepSeek-OCR-4bit",  # 备用：4bit 版本
-                "mlx-community/DeepSeek-OCR"        # 最后尝试：无后缀版本（之前成功使用的）
+                "mlx-community/DeepSeek-OCR-8bit",  # 优先：8bit 版本（精度最高）
+                "mlx-community/DeepSeek-OCR-5bit",  # 备用：5bit 版本（平衡）
+                "mlx-community/DeepSeek-OCR-4bit"  # 最后：4bit 版本（最小最快）
             ]
             
             print(f"[{os.getpid()}] 📋 Will try {len(model_paths)} model paths:")
