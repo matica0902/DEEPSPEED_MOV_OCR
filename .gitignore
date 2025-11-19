@@ -42,7 +42,26 @@ hf_cache/
 # Test files
 test_*.py
 *_test.py
+check_gpu.py
 
 # Railway/Docker
-.dockerignore
+# .dockerignore 需要推送到 GitHub（Railway 需要）
 
+# 不需要推送到 GitHub 的文件
+# 文档和分析文件
+*.md
+!README.md
+
+# macOS 专用文件
+Dockerfile.macos
+
+# Docker Compose（Railway 不需要）
+docker-compose.yml
+
+# 启动脚本（Railway 不需要）
+start.sh
+startback.sh
+
+# 备用模板和静态文件
+templates/indexback*.html
+static/appback*.js
