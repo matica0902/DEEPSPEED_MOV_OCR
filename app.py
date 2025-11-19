@@ -5,6 +5,20 @@ import os
 os.environ['MLX_USE_CPU'] = '1'
 os.environ['METAL_DEVICE_WRAPPER_TYPE'] = '1'
 
+# 自動加載 .env 文件（如果存在）
+try:
+    env_file = os.path.join(os.path.dirname(__file__), '.env')
+    if os.path.exists(env_file):
+        with open(env_file, 'r', encoding='utf-8') as f:
+            for line in f:
+                line = line.strip()
+                if line and not line.startswith('#') and '=' in line:
+                    key, value = line.split('=', 1)
+                    os.environ[key.strip()] = value.strip()
+        print("✅ 已自動加載 .env 文件")
+except Exception as e:
+    print(f"⚠️  加載 .env 文件時出錯: {e}")
+
 # 原有的 import 開始
 import gc
 import re
@@ -34,6 +48,20 @@ import mlx.core as mx
 from mlx_vlm import load, generate
 
 os.environ["HF_HOME"] = str(Path.home() / "hf_cache")
+
+# ==============================================================================
+# Hugging Face Authentication Setup
+# ==============================================================================
+# Check for Hugging Face token from environment variable
+HF_TOKEN = os.environ.get('HF_TOKEN') or os.environ.get('HUGGINGFACE_TOKEN') or os.environ.get('HUGGING_FACE_HUB_TOKEN')
+if HF_TOKEN:
+    os.environ['HF_TOKEN'] = HF_TOKEN
+    os.environ['HUGGINGFACE_TOKEN'] = HF_TOKEN
+    os.environ['HUGGING_FACE_HUB_TOKEN'] = HF_TOKEN
+    print(f"🔑 Hugging Face token found (length: {len(HF_TOKEN)})")
+else:
+    print("⚠️  No Hugging Face token found. If model requires authentication, set HF_TOKEN environment variable.")
+    print("   Get your token from: https://huggingface.co/settings/tokens")
 
 # ==============================================================================
 # 並發控制配置 - CPU 模式需要限制同時運行的 OCR 數量
@@ -461,13 +489,74 @@ def _load_model_for_subprocess():
             return True
         try:
             print(f"[{os.getpid()}] 🚀 Loading MLX DeepSeek-OCR model in subprocess...")
-            model_path = "mlx-community/DeepSeek-OCR-4bit"
-            _model_instance, _processor_instance = load(model_path)
-            print(f"[{os.getpid()}] ✅ Model loaded successfully in subprocess!")
-            print(f"[{os.getpid()}] 📊 Running in MLX CPU mode")
+            print(f"[{os.getpid()}] 📁 HF_HOME: {os.environ.get('HF_HOME', 'Not set')}")
+            
+            # Check for Hugging Face token in subprocess
+            hf_token = os.environ.get('HF_TOKEN') or os.environ.get('HUGGINGFACE_TOKEN') or os.environ.get('HUGGING_FACE_HUB_TOKEN')
+            if hf_token:
+                print(f"[{os.getpid()}] 🔑 HF_TOKEN: Found (length: {len(hf_token)})")
+            else:
+                print(f"[{os.getpid()}] ⚠️  HF_TOKEN: Not found - authentication may fail")
+            
+            print(f"[{os.getpid()}] 🔧 MLX_USE_CPU: {os.environ.get('MLX_USE_CPU', 'Not set')}")
+            
+            # Try different model paths (优先 8bit，备用 4bit，最后尝试无后缀版本)
+            # 根据用户反馈，之前成功使用的是无后缀版本
+            model_paths = [
+                "mlx-community/DeepSeek-OCR-8bit",  # 主要：8bit 版本
+                "mlx-community/DeepSeek-OCR-4bit",  # 备用：4bit 版本
+                "mlx-community/DeepSeek-OCR"        # 最后尝试：无后缀版本（之前成功使用的）
+            ]
+            
+            print(f"[{os.getpid()}] 📋 Will try {len(model_paths)} model paths:")
+            for i, path in enumerate(model_paths, 1):
+                print(f"[{os.getpid()}]   {i}. {path}")
+            
+            model_loaded = False
+            last_error = None
+            
+            for idx, model_path in enumerate(model_paths, 1):
+                try:
+                    print(f"[{os.getpid()}] 📦 [{idx}/{len(model_paths)}] Trying model path: {model_path}")
+                    _model_instance, _processor_instance = load(model_path)
+                    print(f"[{os.getpid()}] ✅ Model loaded successfully from: {model_path}")
+                    print(f"[{os.getpid()}] 📊 Running in MLX CPU mode")
+                    model_loaded = True
+                    break
+                except Exception as e:
+                    last_error = e
+                    error_str = str(e)
+                    print(f"[{os.getpid()}] ❌ [{idx}/{len(model_paths)}] Failed to load {model_path}")
+                    print(f"[{os.getpid()}]    Error: {error_str[:200]}...")  # 限制错误信息长度
+                    # 如果是最后一个模型也失败了，继续到错误处理
+                    if idx < len(model_paths):
+                        print(f"[{os.getpid()}]    Will try next model path...")
+                    continue
+            
+            if not model_loaded:
+                error_msg = str(last_error) if last_error else "Unknown error"
+                print(f"[{os.getpid()}] ❌ Error loading model in subprocess: {error_msg}")
+                
+                # Check if it's an authentication error
+                if "401" in error_msg or "Unauthorized" in error_msg or "authentication" in error_msg.lower():
+                    print(f"[{os.getpid()}] 📋 Error type: Authentication Error")
+                    print(f"[{os.getpid()}] 💡 Solution: Set HF_TOKEN environment variable")
+                    print(f"[{os.getpid()}]    Get token from: https://huggingface.co/settings/tokens")
+                    print(f"[{os.getpid()}]    Then run: export HF_TOKEN=your_token_here")
+                elif "RepositoryNotFoundError" in str(type(last_error)):
+                    print(f"[{os.getpid()}] 📋 Error type: RepositoryNotFoundError")
+                    print(f"[{os.getpid()}] 💡 The model repository may be private or require authentication")
+                else:
+                    print(f"[{os.getpid()}] 📋 Error type: {type(last_error).__name__}")
+                
+                traceback.print_exc()
+                _model_instance = None
+                _processor_instance = None
+                return False
+            
             return True
         except Exception as e:
-            print(f"[{os.getpid()}] ❌ Error loading model in subprocess: {e}")
+            print(f"[{os.getpid()}] ❌ Unexpected error loading model in subprocess: {e}")
             traceback.print_exc()
             _model_instance = None
             _processor_instance = None

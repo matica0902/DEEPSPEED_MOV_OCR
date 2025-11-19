@@ -31,6 +31,9 @@ env:
     value: "1"
   - name: HF_HOME
     value: /tmp/hf_cache
+  # Note: HF_TOKEN should be set as a Secret in Hugging Face Spaces Settings
+  # Go to Settings → Secrets → Add HF_TOKEN with your Hugging Face token
+  # Get token from: https://huggingface.co/settings/tokens
 
 # 持久化存儲
 persistence:

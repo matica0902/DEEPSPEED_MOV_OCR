@@ -64,6 +64,15 @@ if [ $PORT -gt $MAX_PORT ]; then
     exit 1
 fi
 
+# 自動加載 .env 文件（如果存在）
+if [ -f .env ]; then
+    echo "✅ 發現 .env 文件，自動加載環境變數..."
+    export $(grep -v '^#' .env | xargs)
+else
+    echo "⚠️  未發現 .env 文件"
+    echo "   提示: 運行 ./setup_token.sh 來設置 HF_TOKEN"
+fi
+
 echo ""
 echo "強制啟動 Flask 應用（直傳 port，無視 app.py 硬編碼）"
 echo "訪問地址: http://localhost:$PORT"
