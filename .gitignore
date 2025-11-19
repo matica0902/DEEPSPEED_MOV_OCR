@@ -58,9 +58,8 @@ Dockerfile.macos
 # Docker Compose（Railway 不需要）
 docker-compose.yml
 
-# 启动脚本（Railway 不需要）
-start.sh
-startback.sh
+# 启动脚本（保留用于本地开发，Railway 会自动使用 Dockerfile CMD）
+# start.sh 和 startback.sh 已保留在仓库中供本地使用
 
 # 备用模板和静态文件
 templates/indexback*.html
