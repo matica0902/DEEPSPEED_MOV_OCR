@@ -1,14 +1,14 @@
-# MLX DeepSeek-OCR Railway 部署
+# MLX DeepSeek-OCR Hugging Face Spaces 部署
 
-基于 MLX 的 DeepSeek-OCR 应用，支持在 Railway 平台上部署。
+基于 MLX 的 DeepSeek-OCR 应用，支持在 Hugging Face Spaces 平台上部署。
 
 ## 📁 项目结构
 
 ```
 ├── app.py              # Flask 应用主文件
 ├── requirements.txt    # Python 依赖
-├── Dockerfile         # Docker 构建配置（Railway 使用）
-├── railway.json       # Railway 部署配置
+├── Dockerfile         # Docker 构建配置（Hugging Face Spaces 使用）
+├── app_config.yaml    # Hugging Face Spaces 配置
 ├── .dockerignore      # Docker 忽略文件
 ├── start.sh           # 本地开发启动脚本（可选）
 ├── startback.sh       # 本地开发备用启动脚本（可选）
@@ -18,28 +18,40 @@
     └── app.js
 ```
 
-> **注意**：`start.sh` 和 `startback.sh` 仅用于本地开发，Railway 部署时会自动使用 `Dockerfile` 中的 `CMD` 指令，不会使用这些脚本。
+> **注意**：`start.sh` 和 `startback.sh` 仅用于本地开发，Hugging Face Spaces 部署时会自动使用 `Dockerfile` 中的 `CMD` 指令，不会使用这些脚本。
 
-## 🚀 Railway 部署步骤
+## 🚀 Hugging Face Spaces 部署步骤
 
-### 1. 连接 GitHub 仓库
+### 1. 创建 Hugging Face Space
 
-1. 访问 [Railway Dashboard](https://railway.app)
-2. 点击 "New Project"
-3. 选择 "Deploy from GitHub repo"
-4. 授权并选择此仓库
+1. 访问 [Hugging Face Spaces](https://huggingface.co/spaces)
+2. 点击 "Create new Space"
+3. 填写信息：
+   - **Space name**: 你的应用名称（如 `mlx-ocr`）
+   - **SDK**: 选择 **Docker**
+   - **Hardware**: 选择 **CPU upgrade**（$30/月，推荐）或 **CPU basic**（免费，但资源有限）
+   - **Visibility**: Public 或 Private
 
-### 2. 设置环境变量
+### 2. 连接 GitHub 仓库
 
-在 Railway 项目设置中添加：
+1. 在 Space 设置中选择 "Repository"
+2. 选择 "Connect to existing repository"
+3. 授权并选择你的 GitHub 仓库：`matica0902/DEEPSPEED_MOV_OCR`
+4. Hugging Face 会自动检测 `app_config.yaml` 和 `Dockerfile`
 
-- `MLX_USE_CPU=1` - 启用 CPU 模式
-- `PYTHONUNBUFFERED=1` - Python 输出缓冲
-- `PORT` - Railway 会自动设置
+### 3. 自动部署
 
-### 3. 部署
+- Hugging Face Spaces 会自动检测配置并开始构建
+- 首次部署需要 5-10 分钟（下载依赖和模型）
+- 部署完成后会提供一个公开 URL
 
-Railway 会自动检测 `railway.json` 并开始构建部署。
+### 4. 配置说明
+
+**app_config.yaml** 已配置：
+- ✅ 固定端口：7860（Hugging Face Spaces 标准端口）
+- ✅ CPU 升级硬件（$30/月）
+- ✅ 环境变量：`MLX_USE_CPU=1`
+- ✅ 持久化存储：10GB（用于模型缓存）
 
 ## 💻 本地开发
 
@@ -51,7 +63,7 @@ chmod +x start.sh
 ./start.sh
 ```
 
-> **Railway 部署说明**：Railway 会自动使用 `Dockerfile` 中的 `CMD ["python", "app.py"]` 启动应用，不会执行 `start.sh`，因此启动脚本的存在不会影响 Railway 部署。
+> **Hugging Face Spaces 部署说明**：Hugging Face Spaces 会自动使用 `Dockerfile` 中的 `CMD ["python", "app.py"]` 启动应用，不会执行 `start.sh`，因此启动脚本的存在不会影响部署。
 
 ## 📝 功能特性
 
@@ -67,7 +79,20 @@ chmod +x start.sh
 - `GET /api/health` - 健康检查
 - `POST /api/ocr` - OCR 处理
 
+## 💰 费用说明
+
+### Hugging Face Spaces 定价
+
+- **CPU Basic**（免费）：
+  - 2 vCPU
+  - 16GB RAM
+  - 适合测试，但可能资源不足
+
+- **CPU Upgrade**（$30/月）：
+  - 4 vCPU
+  - 32GB RAM
+  - 推荐用于生产环境
+
 ## 📄 许可证
 
 MIT License
-
