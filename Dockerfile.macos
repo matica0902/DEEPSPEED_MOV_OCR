@@ -1,0 +1,55 @@
+# ==============================================================================
+# MLX DeepSeek-OCR Docker Image (macOS - CPU 模式)
+# ⚠️ 警告：MLX 在 Linux Docker 中可能無法正常運行
+# 建議：macOS 上直接運行，不使用 Docker
+# ==============================================================================
+
+FROM python:3.11-slim
+
+# 設置環境變數
+ENV PYTHONUNBUFFERED=1
+ENV MLX_USE_CPU=1
+ENV METAL_DEVICE_WRAPPER_TYPE=1
+ENV HF_HOME=/root/.cache/huggingface
+ENV PORT=5000
+
+# 安裝系統依賴
+RUN apt-get update && apt-get install -y \
+    libgl1-mesa-glx \
+    libglib2.0-0 \
+    libsm6 \
+    libxext6 \
+    libxrender-dev \
+    curl \
+    && rm -rf /var/lib/apt/lists/*
+
+# 安裝 Python 依賴
+WORKDIR /app
+COPY requirements.txt /app/requirements.txt
+
+# ⚠️ 注意：MLX 在 Linux Docker 中可能無法正常運行
+# 即使設置 CPU 模式，MLX 仍需要 macOS 環境
+RUN pip3 install --no-cache-dir --upgrade pip && \
+    pip3 install --no-cache-dir -r requirements.txt || \
+    echo "⚠️ MLX installation may fail on Linux - MLX requires macOS"
+
+# 可選：安裝 rembg
+RUN pip3 install --no-cache-dir rembg || echo "⚠️ rembg installation failed, will use fallback"
+
+# 複製應用代碼
+COPY . /app
+
+# 創建必要的目錄
+RUN mkdir -p /app/uploads /tmp/uploads && \
+    chmod 777 /app/uploads /tmp/uploads
+
+# 暴露端口
+EXPOSE 5000
+
+# 健康檢查
+HEALTHCHECK --interval=30s --timeout=10s --start-period=60s --retries=3 \
+    CMD curl -f http://localhost:5000/api/status || exit 1
+
+# 啟動命令
+CMD ["python3", "app.py"]
+

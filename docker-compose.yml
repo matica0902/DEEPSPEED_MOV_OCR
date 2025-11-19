@@ -1,0 +1,43 @@
+version: '3.8'
+
+services:
+  mlx-ocr-api:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    image: mlx-deepseek-ocr:latest
+    container_name: mlx-ocr-api
+    ports:
+      - "5000:5000"
+    environment:
+      - MLX_USE_CPU=0
+      - HF_HOME=/root/.cache/huggingface
+      - PORT=5000
+    volumes:
+      - ./uploads:/app/uploads
+      - model-cache:/root/.cache/huggingface
+    deploy:
+      resources:
+        reservations:
+          devices:
+            - driver: nvidia
+              count: 1
+              capabilities: [gpu]
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:5000/api/status"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 60s
+    networks:
+      - ocr-network
+
+volumes:
+  model-cache:
+    driver: local
+
+networks:
+  ocr-network:
+    driver: bridge
+
