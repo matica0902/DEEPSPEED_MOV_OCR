@@ -500,60 +500,12 @@ def _load_model_for_subprocess():
             
             print(f"[{os.getpid()}] 🔧 MLX_USE_CPU: {os.environ.get('MLX_USE_CPU', 'Not set')}")
             
-            # Try different model paths (根据 Hugging Face 实际存在的模型)
-            # 已验证：mlx-community 下存在 8bit、5bit、4bit 版本，不存在无后缀版本
-            model_paths = [
-                "mlx-community/DeepSeek-OCR-8bit",  # 优先：8bit 版本（精度最高）
-                "mlx-community/DeepSeek-OCR-5bit",  # 备用：5bit 版本（平衡）
-                "mlx-community/DeepSeek-OCR-4bit"  # 最后：4bit 版本（最小最快）
-            ]
-            
-            print(f"[{os.getpid()}] 📋 Will try {len(model_paths)} model paths:")
-            for i, path in enumerate(model_paths, 1):
-                print(f"[{os.getpid()}]   {i}. {path}")
-            
-            model_loaded = False
-            last_error = None
-            
-            for idx, model_path in enumerate(model_paths, 1):
-                try:
-                    print(f"[{os.getpid()}] 📦 [{idx}/{len(model_paths)}] Trying model path: {model_path}")
-                    _model_instance, _processor_instance = load(model_path)
-                    print(f"[{os.getpid()}] ✅ Model loaded successfully from: {model_path}")
-                    print(f"[{os.getpid()}] 📊 Running in MLX CPU mode")
-                    model_loaded = True
-                    break
-                except Exception as e:
-                    last_error = e
-                    error_str = str(e)
-                    print(f"[{os.getpid()}] ❌ [{idx}/{len(model_paths)}] Failed to load {model_path}")
-                    print(f"[{os.getpid()}]    Error: {error_str[:200]}...")  # 限制错误信息长度
-                    # 如果是最后一个模型也失败了，继续到错误处理
-                    if idx < len(model_paths):
-                        print(f"[{os.getpid()}]    Will try next model path...")
-                    continue
-            
-            if not model_loaded:
-                error_msg = str(last_error) if last_error else "Unknown error"
-                print(f"[{os.getpid()}] ❌ Error loading model in subprocess: {error_msg}")
-                
-                # Check if it's an authentication error
-                if "401" in error_msg or "Unauthorized" in error_msg or "authentication" in error_msg.lower():
-                    print(f"[{os.getpid()}] 📋 Error type: Authentication Error")
-                    print(f"[{os.getpid()}] 💡 Solution: Set HF_TOKEN environment variable")
-                    print(f"[{os.getpid()}]    Get token from: https://huggingface.co/settings/tokens")
-                    print(f"[{os.getpid()}]    Then run: export HF_TOKEN=your_token_here")
-                elif "RepositoryNotFoundError" in str(type(last_error)):
-                    print(f"[{os.getpid()}] 📋 Error type: RepositoryNotFoundError")
-                    print(f"[{os.getpid()}] 💡 The model repository may be private or require authentication")
-                else:
-                    print(f"[{os.getpid()}] 📋 Error type: {type(last_error).__name__}")
-                
-                traceback.print_exc()
-                _model_instance = None
-                _processor_instance = None
-                return False
-            
+            # 使用之前可以工作的简单版本：直接使用 8bit 模型
+            model_path = "mlx-community/DeepSeek-OCR-8bit"
+            print(f"[{os.getpid()}] 📦 Model path: {model_path}")
+            _model_instance, _processor_instance = load(model_path)
+            print(f"[{os.getpid()}] ✅ Model loaded successfully in subprocess!")
+            print(f"[{os.getpid()}] 📊 Running in MLX CPU mode")
             return True
         except Exception as e:
             print(f"[{os.getpid()}] ❌ Unexpected error loading model in subprocess: {e}")
