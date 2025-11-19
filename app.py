@@ -1771,13 +1771,17 @@ if __name__ == '__main__':
     print(f"  Running Mode: MLX CPU (No GPU)")
     print("="*60)
     
-    print("\n✅ Application starting on http://0.0.0.0:5001")
+    # Hugging Face Spaces 使用固定埠 7860
+    port = 7860
+    host = '0.0.0.0'
+    
+    print(f"\n✅ Application starting on http://{host}:{port}")
     print("\n📊 Enhanced Features:")
     print("   - 📄 OCR 辨識 (現有功能)")
     print("   - 🎨 照片前處理 (新功能)")
     print("   - 🎬 影片截圖 (新功能)")
     print("   - 📋 PDF 批次處理 (現有功能)")
-    print("   - 🔒 並發控制 (CPU 模式優化)")
+    print("   - 📍 並發控制 (CPU 模式優化)")
     print("\n📄 Legacy Mode Support:")
     print("   - 'basic' → Document/Academic/Medium")
     print("   - 'table' → Document/Table/Large")
@@ -1787,6 +1791,4 @@ if __name__ == '__main__':
     print("\n⚠️  Note: CPU mode is 5-10x slower than GPU mode")
     print("   Please be patient during OCR processing.\n")
     
-    # 支援 Railway 和其他平台的 PORT 環境變數
-    port = int(os.environ.get('PORT', 5001))
-    app.run(host='0.0.0.0', port=port, debug=False, threaded=True)
+    app.run(host=host, port=port, debug=False, threaded=True)

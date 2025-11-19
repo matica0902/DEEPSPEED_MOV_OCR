@@ -1,0 +1,39 @@
+title: MLX OCR Application
+
+emoji: 📄
+
+colorFrom: blue
+
+colorTo: purple
+
+sdk: docker
+
+sdk_version: latest
+
+app_file: app.py
+
+app_port: 7860
+
+fullWidth: true
+
+hf_oauth: false
+
+# 資源配置 - 付費方案（$30/月）
+hardware: cpu-upgrade
+
+# 環境變數
+env:
+  - name: PYTHONUNBUFFERED
+    value: "1"
+  - name: MLX_USE_CPU
+    value: "1"
+  - name: METAL_DEVICE_WRAPPER_TYPE
+    value: "1"
+  - name: HF_HOME
+    value: /tmp/hf_cache
+
+# 持久化存儲
+persistence:
+  - mount_point: /tmp
+    size: 10
+

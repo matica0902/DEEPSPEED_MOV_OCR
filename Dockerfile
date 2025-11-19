@@ -9,7 +9,7 @@ ENV PYTHONUNBUFFERED=1 \
     METAL_DEVICE_WRAPPER_TYPE=1 \
     HF_HOME=/tmp/hf_cache
 
-# 安裝系統依賴（移除不存在的包）
+# 安裝系統依賴
 RUN apt-get update && apt-get install -y --no-install-recommends \
     build-essential \
     python3-opencv \
@@ -37,12 +37,12 @@ COPY static/ static/
 RUN mkdir -p /tmp/hf_cache && \
     chmod 777 /tmp/hf_cache
 
-# 暴露埠口
-EXPOSE 5001
+# Hugging Face Spaces 固定使用 7860 埠
+EXPOSE 7860
 
 # 健康檢查
-HEALTHCHECK --interval=30s --timeout=10s --start-period=40s --retries=3 \
-    CMD python -c "import urllib.request; urllib.request.urlopen('http://localhost:5001/api/health').read()" || exit 1
+HEALTHCHECK --interval=30s --timeout=10s --start-period=60s --retries=3 \
+    CMD python -c "import urllib.request; urllib.request.urlopen('http://localhost:7860/api/health').read()" || exit 1
 
 # 啟動應用
 CMD ["python", "app.py"]
