@@ -1752,28 +1752,43 @@ def cleanup():
 atexit.register(cleanup)
 
 if __name__ == '__main__':
+    # 1. Spawn 模式對 MLX/PyTorch 在 Linux 上是必須的，這行保留做得很好
     multiprocessing.set_start_method('spawn', force=True)
     
     print("\n" + "="*60)
-    print("🚀 Starting Flask OCR Application (MLX CPU Mode)")
+    
+    # 2. 真實檢測設備
+    try:
+        current_device = mx.default_device()
+        device_type = "MLX CPU" if current_device == mx.cpu else "MLX GPU"
+        print(f"🚀 Starting Flask OCR Application ({device_type} Mode)")
+    except Exception as e:
+        print(f"🚀 Starting Flask OCR Application (Device check failed: {e})")
+        device_type = "Unknown"
+    
     print("="*60)
     
     if not preload_model_main_process():
         print("❌ CRITICAL: Model preload status setting failed. Cannot start application.")
         sys.exit(1)
     
+    # 3. 針對 Linux CPU 的配置建議
+    # 如果是 CPU 模式，建議將並發數限制在較低水平
+    # 優先使用環境變數，如果沒有則使用現有的計算邏輯
+    concurrency_limit = int(os.environ.get('MAX_CONCURRENT_OCR', MAX_CONCURRENT_OCR))
+    
     print("\n" + "="*60)
     print("⚙️  Runtime Configuration")
     print("="*60)
-    print(f"  CPU Cores: {CPU_COUNT}")
-    print(f"  Max Concurrent OCR: {MAX_CONCURRENT_OCR}")
+    print(f"  CPU Cores: {multiprocessing.cpu_count()}")
+    print(f"  Max Concurrent OCR: {concurrency_limit}")
+    print(f"  Device: {device_type} (Verified)")
     print(f"  OCR Timeout: 300 seconds")
-    print(f"  Running Mode: MLX CPU (No GPU)")
     print("="*60)
     
-    # Hugging Face Spaces 使用固定埠 7860
-    port = 7860
-    host = '0.0.0.0'
+    # 從環境變數讀取端口和主機，支援 Railway/Hugging Face Spaces 等平台
+    port = int(os.environ.get('PORT', 7860))  # Hugging Face Spaces 使用 7860，Railway 使用環境變數
+    host = os.environ.get('HOST', '0.0.0.0')
     
     print(f"\n✅ Application starting on http://{host}:{port}")
     print("\n📊 Enhanced Features:")
@@ -1788,7 +1803,17 @@ if __name__ == '__main__':
     print("   - 'markdown' → Document/Content/Medium")
     print("   - 'formula' → Document/Academic/Large")
     print("   - 'product' → Scene/Photo/Small")
-    print("\n⚠️  Note: CPU mode is 5-10x slower than GPU mode")
-    print("   Please be patient during OCR processing.\n")
     
+    # 4. 針對 Linux CPU 的警告
+    if device_type == "MLX CPU":
+        print("\n⚠️  Note: You are running on Linux CPU.")
+        print("   Performance will be significantly slower than Apple Silicon.")
+        print("   Please ensure 'pip install mlx[cpu]' was used.")
+    else:
+        print("\n⚠️  Note: CPU mode is 5-10x slower than GPU mode")
+        print("   Please be patient during OCR processing.")
+    print()
+    
+    # 5. 啟動
+    # 注意：在 Railway 生產環境中，通常不會執行到這裡，而是由 Gunicorn 導入 app 物件
     app.run(host=host, port=port, debug=False, threaded=True)
